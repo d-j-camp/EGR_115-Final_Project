@@ -70,7 +70,7 @@ function flying()
     
     set(gca, 'Position', [0.05 0.05 0.9 0.85], 'DataAspectRatio', [1 1 1], 'Color', 'none');
     
-    geoshow('usastatelo.shp', 'FaceColor', [0.9 0.9 0.9], ...
+    geoshow('ne_10m_admin_1_states.shp', 'FaceColor', [0.9 0.9 0.9], ...
         'EdgeColor', [0.5 0.5 0.5]);
     
     [pathlat, pathlon] = track2(lat1, lon1, lat2, lon2);
