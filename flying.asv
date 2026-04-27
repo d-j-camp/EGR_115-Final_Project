@@ -1,0 +1,91 @@
+function flying()
+
+    clc;
+
+
+    data = readtable('airports.csv');
+    cityList = string(data.name) + " (" + string(data.code) + ")";
+    data.lon = data.lon * -1;
+
+
+    fig = uifigure('Name', 'Flight Path Selector', 'Color', 'w', ...
+        'Position', [100, 100, 400, 300]);
+    
+    uilabel(fig, 'Position', [50, 120, 100, 22], 'Text', 'Aircraft Type:');
+    ddPlane = uidropdown(fig, 'Position', [150, 120, 150, 22], ...
+        'Items', {'Cessna 172', 'Gulfstream G650', 'Boeing 787-10', 'C-5 Galaxy'}, ...
+        'ItemsData', [0.15, 1.2, 3.5, 9.0]);
+
+    uilabel(fig, 'Position', [50, 220, 100, 22], 'Text', 'Departure City:');
+    ddStart = uidropdown(fig, 'Items', cityList, ...
+        'ItemsData', 1:height(data), ...
+        'Position', [150, 220, 150, 22]);
+    
+    uilabel(fig, 'Position', [50, 170, 100, 22], 'Text', 'Destination City:');
+    ddEnd = uidropdown(fig, 'Items', cityList, ...
+        'ItemsData', 1:height(data), ...
+        'Position', [150, 170, 150, 22]);
+    
+    uibutton(fig, 'Position', [150, 70, 100, 40], 'Text', 'Plot Path', ...
+        'BackgroundColor', [0.8 0.9 1.0], ...
+        'ButtonPushedFcn', @(btn, event) executePlot(ddStart.Value, ...
+        ddEnd.Value, ddPlane.Value, ddPlane.Items{ddPlane.Value == ddPlane.ItemsData}, data));
+    
+    function executePlot(idx1, idx2, burnRate, planeName, data)
+        if idx1 == idx2
+            uialert(fig, 'Select two different cities.', 'Invalid Path');
+            return;
+        end
+
+    lat1 = data.lat(idx1);
+    lon1 = data.lon(idx1);
+    lat2 = data.lat(idx2);
+    lon2 = data.lon(idx2);
+
+    try
+        degDist = distance(lat1, lon1, lat2, lon2);
+    catch
+        degDist = acosd(sind(lat1) * sind(lat2) + cosd(lat1) * cosd(lat2) * cosd(lon2 - lon1));
+    end
+
+    d = deg2sm(degDist);
+
+    totalFuel = d * burnRate;
+
+    fmap = figure('Color', 'w', 'Name', 'Flight Map');
+    set(fmap, 'WindowState', 'maximized');
+    
+    
+    LatLim = [24 50];
+    LonLim = [-125 -64];
+    
+    
+    
+    ax = axesm('lambert', 'MapLatLimit', LatLim, 'MapLonLimit', LonLim, ...
+        'Grid', 'on', 'GLineStyle', ':');
+    setm(ax, 'Origin', [0, -95, 0]);
+    view(0, 90);
+    gridm off; framem off;
+    axis off;
+    
+    set(gca, 'Position', [0.05 0.05 0.9 0.85], 'DataAspectRatio', [1 1 1], 'Color', 'none');
+    
+    geoshow('usastatelo.shp', 'FaceColor', [0.9 0.9 0.9], ...
+        'EdgeColor', [0.5 0.5 0.5]);
+    
+    [pathlat, pathlon] = track2(lat1, lon1, lat2, lon2);
+    plotm(pathlat, pathlon, 'c-', 'LineWidth', 2);
+    
+    plotm([lat1; lat2], [lon1; lon2], 'ro', 'MarkerFaceColor', 'y', 'MarkerSize', 6);
+    textm(lat1, lon1, ['  ' data.name{idx1}], 'FontSize', 10, 'FontWeight', 'bold');
+    textm(lat2, lon2, ['  ' data.name{idx2}], 'FontSize', 10, 'FontWeight', 'bold');
+    
+    %  view([-100, 35]);
+
+    title(sprintf('Flight path: %s to %s\nDistance: %.1f miles | %.1f gal', ...
+        planeName, data.name{idx1}, data.name{idx2}, d, totalFuel), ...
+        'FontSize', 14, 'FontWeight', 'bold');
+    
+        tightmap;
+    end
+end
